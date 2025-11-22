@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Video Details</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+        nav { background: white; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        nav a { margin-right: 20px; text-decoration: none; color: #667eea; font-weight: 600; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .video-info { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .video-player { background: #000; border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+        video { width: 100%; height: auto; display: block; }
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .info-box { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+        .info-box .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .info-box .value { font-size: 18px; font-weight: bold; color: #333; }
+        .frames-section { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .frames-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; margin-top: 15px; }
+        .frame-card { border: 2px solid #ddd; border-radius: 8px; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
+        .frame-card:hover { transform: scale(1.05); border-color: #667eea; }
+        .frame-card img { width: 100%; height: 150px; object-fit: cover; }
+        .frame-card .frame-number { padding: 8px; text-align: center; background: #f8f9fa; font-size: 12px; color: #666; }
+        .btn { padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; display: inline-block; }
+        .error { background: #fee; color: #c00; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .download-btn { background: #27ae60; margin-left: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>📹 Video Details</h1>
+    </div>
+
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/users">Users</a>
+        <a href="/cameras">Cameras</a>
+        <a href="/videos">Videos</a>
+        <a href="/connections">Connections</a>
+    </nav>
+
+    <div class="container">
+        <div th:if="${error}" class="error" th:text="${error}">Error message</div>
+
+        <div th:if="${video}" class="video-info">
+            <h2>Video Information</h2>
+            
+            <div class="info-grid">
+                <div class="info-box">
+                    <div class="label">Camera</div>
+                    <div class="value" th:text="${video.cameraName}">Camera 1</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Uploaded</div>
+                    <div class="value" th:text="${video.uploadedAt}">2024-01-01 10:00</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Duration</div>
+                    <div class="value" th:text="${video.durationSeconds != null ? video.durationSeconds + ' sec' : 'N/A'}">10 sec</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">File Size</div>
+                    <div class="value" th:text="${#numbers.formatDecimal(video.fileSizeBytes / 1024.0 / 1024.0, 1, 2)} + ' MB'">1.5 MB</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Frames Extracted</div>
+                    <div class="value" th:text="${video.frameCount}">30</div>
+                </div>
+                <div class="info-box">
+                    <div class="label">Video ID</div>
+                    <div class="value" th:text="${video.id}">#1</div>
+                </div>
+            </div>
+
+            <!-- Video Player -->
+            <div class="video-player" th:if="${video.videoPath != null}">
+                <video controls preload="metadata">
+                    <source th:src="@{http://localhost:8082/api/videos/{id}/stream(id=${video.id})}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <p th:if="${video.videoPath == null}" style="color: #999; text-align: center; padding: 40px;">
+                ⚠️ Video file not available for playback
+            </p>
+        </div>
+
+        <!-- Frames Gallery -->
+        <div th:if="${frames != null and !frames.isEmpty()}" class="frames-section">
+            <h2>📸 Extracted Frames (${frames.size()})</h2>
+            <div class="frames-grid">
+                <div class="frame-card" th:each="frame : ${frames}">
+                    <img th:src="@{http://localhost:8082/api/frames/{id}/image(id=${frame.id})}" 
+                         th:alt="'Frame ' + ${frame.frameNumber}"
+                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27200%27 height=%27150%27%3E%3Crect fill=%27%23ddd%27 width=%27200%27 height=%27150%27/%3E%3Ctext x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 fill=%27%23999%27%3ENo Image%3C/text%3E%3C/svg%3E'">
+                    <div class="frame-number">Frame #<span th:text="${frame.frameNumber}">1</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div th:if="${frames == null or frames.isEmpty()}" class="frames-section">
+            <h2>📸 Extracted Frames</h2>
+            <p style="color: #999; text-align: center; padding: 20px;">No frames extracted yet. The video processing may still be in progress.</p>
+        </div>
+
+        <a href="javascript:history.back()" class="btn">← Back</a>
+        <a th:if="${video != null}" th:href="@{http://localhost:8082/api/videos/{id}/download(id=${video.id})}" class="btn download-btn">⬇️ Download Video</a>
+    </div>
+</body>
+</html>

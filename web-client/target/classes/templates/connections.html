@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Connections - Security Camera System</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; }
+        .header { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); color: white; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        nav { background: rgba(255,255,255,0.95); padding: 15px 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        nav a { margin-right: 20px; text-decoration: none; color: #667eea; font-weight: 600; transition: color 0.3s; }
+        nav a:hover { color: #764ba2; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .connections-list { margin-top: 20px; }
+        .connection-card { background: white; border-radius: 15px; padding: 25px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); transition: transform 0.3s; }
+        .connection-card:hover { transform: translateX(5px); }
+        .connection-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .connection-user { display: flex; align-items: center; gap: 15px; }
+        .user-avatar { width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: bold; }
+        .user-details h3 { color: #333; margin-bottom: 5px; }
+        .user-details p { color: #666; font-size: 13px; }
+        .status-badge { padding: 6px 14px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .connection-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 15px; }
+        .stat-box { background: #f8f9fa; padding: 12px; border-radius: 10px; text-align: center; }
+        .stat-value { font-size: 20px; font-weight: bold; color: #667eea; }
+        .stat-label { font-size: 11px; color: #666; margin-top: 5px; }
+        .no-connections { background: white; border-radius: 15px; padding: 60px; text-align: center; color: #666; }
+        .no-connections-icon { font-size: 64px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🔗 Active Connections</h1>
+    </div>
+
+    <nav>
+        <a href="/">🏠 Dashboard</a>
+        <a href="/users">👥 Users</a>
+        <a href="/cameras">📹 Cameras</a>
+        <a href="/videos">🎬 Videos</a>
+        <a href="/connections">🔗 Connections</a>
+    </nav>
+
+    <div class="container">
+        <div class="connections-list" th:if="${connections != null and !connections.isEmpty()}">
+            <div class="connection-card" th:each="conn : ${connections}">
+                <div class="connection-header">
+                    <div class="connection-user">
+                        <div class="user-avatar" th:text="${#strings.substring(conn.username, 0, 1).toUpperCase()}">U</div>
+                        <div class="user-details">
+                            <h3 th:text="${conn.username}">Username</h3>
+                            <p th:text="'🌐 ' + ${conn.ipAddress}">192.168.1.100</p>
+                        </div>
+                    </div>
+                    <span th:class="${conn.isActive ? 'status-badge status-active' : 'status-badge status-inactive'}" 
+                          th:text="${conn.isActive ? '🟢 Connected' : '🔴 Disconnected'}">Connected</span>
+                </div>
+                <div class="connection-stats">
+                    <div class="stat-box">
+                        <div class="stat-value" th:text="${#temporals.format(conn.connectedAt, 'HH:mm')}">10:30</div>
+                        <div class="stat-label">Connected At</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Duration</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Files Sent</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" th:text="${conn.isActive ? 'Active' : 'Idle'}">Active</div>
+                        <div class="stat-label">Status</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="no-connections" th:if="${connections == null or connections.isEmpty()}">
+            <div class="no-connections-icon">🔌</div>
+            <h2>No Active Connections</h2>
+            <p style="margin-top: 10px;">There are no active connections at the moment.</p>
+        </div>
+    </div>
+</body>
+</html>

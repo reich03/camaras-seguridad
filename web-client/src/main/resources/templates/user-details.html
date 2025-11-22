@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Details</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f5f5; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+        nav { background: white; padding: 15px 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        nav a { margin-right: 20px; text-decoration: none; color: #667eea; font-weight: 600; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+        .user-info { background: white; padding: 25px; border-radius: 10px; margin-bottom: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-box { background: #f8f9fa; padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-box .label { font-size: 12px; color: #666; margin-bottom: 5px; }
+        .stat-box .value { font-size: 28px; font-weight: bold; color: #667eea; }
+        .section { background: white; padding: 25px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        h2 { margin-bottom: 15px; color: #333; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; }
+        .btn { padding: 8px 16px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>User Details</h1>
+    </div>
+
+    <nav>
+        <a href="/">Dashboard</a>
+        <a href="/users">Users</a>
+        <a href="/cameras">Cameras</a>
+        <a href="/videos">Videos</a>
+        <a href="/connections">Connections</a>
+    </nav>
+
+    <div class="container">
+        <div class="user-info" th:if="${user}">
+            <h2 th:text="${user.username}">Username</h2>
+            <p><strong>Email:</strong> <span th:text="${user.email}">email@example.com</span></p>
+            <p><strong>Registered:</strong> <span th:text="${user.createdAt}">2024-01-01</span></p>
+            <p><strong>Max Connections:</strong> <span th:text="${user.maxConnections}">3</span></p>
+        </div>
+
+        <div th:if="${stats}" class="stats-grid">
+            <div class="stat-box">
+                <div class="label">Total Cameras</div>
+                <div class="value" th:text="${stats.totalCameras}">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Total Videos</div>
+                <div class="value" th:text="${stats.totalVideos}">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Active Connections</div>
+                <div class="value" th:text="${stats.activeConnections}">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">Files Sent</div>
+                <div class="value" th:text="${stats.totalFilesSent}">0</div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Cameras</h2>
+            <table th:if="${cameras != null and !cameras.isEmpty()}">
+                <thead>
+                    <tr>
+                        <th>Camera Name</th>
+                        <th>IP Address</th>
+                        <th>Videos</th>
+                        <th>Registered</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="camera : ${cameras}">
+                        <td th:text="${camera.cameraName}">Camera 1</td>
+                        <td th:text="${camera.ipAddress}">192.168.1.100</td>
+                        <td th:text="${camera.videoCount}">0</td>
+                        <td th:text="${camera.registeredAt}">2024-01-01</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p th:if="${cameras == null or cameras.isEmpty()}">No cameras registered.</p>
+        </div>
+
+        <div class="section">
+            <h2>Recent Videos</h2>
+            <table th:if="${videos != null and !videos.isEmpty()}">
+                <thead>
+                    <tr>
+                        <th>Camera</th>
+                        <th>Uploaded</th>
+                        <th>Duration</th>
+                        <th>Size</th>
+                        <th>Frames</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="video : ${videos}">
+                        <td th:text="${video.cameraName}">Camera 1</td>
+                        <td th:text="${video.uploadedAt}">2024-01-01</td>
+                        <td th:text="${video.durationSeconds != null ? video.durationSeconds + ' sec' : 'N/A'}">60 sec</td>
+                        <td th:text="${#numbers.formatDecimal(video.fileSizeBytes / 1024.0 / 1024.0, 1, 2)} + ' MB'">10 MB</td>
+                        <td th:text="${video.frameCount}">10</td>
+                        <td>
+                            <a th:href="@{/videos/{id}(id=${video.id})}" class="btn" style="padding: 6px 12px; margin: 0;">▶ Ver Video</a>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p th:if="${videos == null or videos.isEmpty()}">No videos uploaded yet.</p>
+        </div>
+
+        <a href="/users" class="btn">← Back to Users</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+/* Security Camera Client - Custom Styles */
+
+.root {
+    -fx-font-family: "Segoe UI", Arial, sans-serif;
+}
+
+/* Buttons */
+.button {
+    -fx-cursor: hand;
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+.button:hover {
+    -fx-opacity: 0.85;
+}
+
+.button:pressed {
+    -fx-scale-x: 0.98;
+    -fx-scale-y: 0.98;
+}
+
+/* ComboBox */
+.combo-box {
+    -fx-background-radius: 5;
+}
+
+/* TextField */
+.text-field {
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+
+/* TextArea */
+.text-area {
+    -fx-background-radius: 5;
+}
+
+/* Tab Pane */
+.tab-pane {
+    -fx-background-color: transparent;
+}
+
+.tab-pane .tab-header-area .tab-header-background {
+    -fx-background-color: white;
+}
+
+.tab {
+    -fx-background-color: #ecf0f1;
+    -fx-background-radius: 5 5 0 0;
+}
+
+.tab:selected {
+    -fx-background-color: white;
+    -fx-font-weight: bold;
+}
+
+.tab:hover {
+    -fx-background-color: #d5dbdb;
+}
+
+/* Progress Bar */
+.progress-bar .bar {
+    -fx-background-color: #3498db;
+    -fx-background-radius: 5;
+}
+
+.progress-bar .track {
+    -fx-background-color: #ecf0f1;
+    -fx-background-radius: 5;
+}
+
+/* Titled Pane */
+.titled-pane {
+    -fx-background-color: transparent;
+}
+
+.titled-pane > .title {
+    -fx-background-color: #ecf0f1;
+    -fx-background-radius: 5 5 0 0;
+}
+
+.titled-pane > .content {
+    -fx-background-color: white;
+    -fx-border-color: #ecf0f1;
+    -fx-border-width: 0 1 1 1;
+}
