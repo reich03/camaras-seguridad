@@ -6,10 +6,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import java.util.concurrent.Executor;
 
-/**
- * Configuración del Thread Pool (Object Pool Pattern)
- * Reutiliza threads para procesamiento de videos de forma eficiente
- */
+
 @Configuration
 public class ThreadPoolConfig {
 
@@ -22,10 +19,7 @@ public class ThreadPoolConfig {
     @Value("${thread.pool.queue-capacity:100}")
     private int queueCapacity;
 
-    /**
-     * Thread Pool para procesamiento asíncrono de videos
-     * Implementa Object Pool Pattern para reutilizar threads
-     */
+    
     @Bean(name = "videoProcessingExecutor")
     public Executor videoProcessingExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

@@ -6,9 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad User con patrón Builder para construcción flexible
- */
+
 @Entity
 @Table(name = "users")
 @Getter
@@ -58,9 +56,7 @@ public class User {
         }
     }
 
-    /**
-     * Builder Pattern Implementation
-     */
+   
     public static class UserBuilder {
         private String username;
         private String password;

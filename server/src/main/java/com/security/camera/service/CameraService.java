@@ -22,9 +22,7 @@ public class CameraService {
     private final UserRepository userRepository;
     private final VideoRepository videoRepository;
 
-    /**
-     * Registrar cámara usando Builder Pattern
-     */
+   
     public CameraDTO registerCamera(CameraRegistrationRequest request) {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));

@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-/**
- * Entidad Frame para almacenar fotogramas extraídos de videos
- */
+
 @Entity
 @Table(name = "frames")
 @Getter

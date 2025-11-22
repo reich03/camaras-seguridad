@@ -6,9 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Video con patrón Builder
- */
+
 @Entity
 @Table(name = "videos")
 @Getter
@@ -47,9 +45,7 @@ public class Video {
         }
     }
 
-    /**
-     * Builder Pattern Implementation
-     */
+    
     public static class VideoBuilder {
         private Camera camera;
         private String videoPath;

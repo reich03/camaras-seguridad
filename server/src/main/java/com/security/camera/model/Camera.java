@@ -6,9 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Entidad Camera con patrón Builder
- */
+
 @Entity
 @Table(name = "cameras")
 @Getter
@@ -50,9 +48,7 @@ public class Camera {
         }
     }
 
-    /**
-     * Builder Pattern Implementation
-     */
+    
     public static class CameraBuilder {
         private String cameraName;
         private User user;

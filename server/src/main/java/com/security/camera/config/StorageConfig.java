@@ -5,9 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import jakarta.annotation.PostConstruct;
 import java.io.File;
 
-/**
- * Configuración de almacenamiento para videos y frames
- */
+
 @Configuration
 public class StorageConfig {
 

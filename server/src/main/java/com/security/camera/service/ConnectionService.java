@@ -20,15 +20,11 @@ public class ConnectionService {
     private final UserConnectionRepository connectionRepository;
     private final UserRepository userRepository;
 
-    /**
-     * Registrar una nueva conexión
-     * Verifica que no se exceda el límite de conexiones del usuario
-     */
+    
     public ConnectionDTO connect(Long userId, String ipAddress) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Verificar límite de conexiones
         long activeConnections = connectionRepository.countActiveConnectionsByUserId(userId);
         if (activeConnections >= user.getMaxConnections()) {
             throw new RuntimeException("Maximum connections reached for user: " + user.getMaxConnections());
@@ -45,9 +41,7 @@ public class ConnectionService {
         return convertToDTO(connection);
     }
 
-    /**
-     * Desconectar usuario
-     */
+    
     public void disconnect(Long connectionId) {
         UserConnection connection = connectionRepository.findById(connectionId)
                 .orElseThrow(() -> new RuntimeException("Connection not found"));
@@ -56,27 +50,20 @@ public class ConnectionService {
         connectionRepository.save(connection);
     }
 
-    /**
-     * Obtener conexiones activas
-     */
     public List<ConnectionDTO> getActiveConnections() {
         return connectionRepository.findAllActiveConnections().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Obtener conexiones de un usuario
-     */
+    
     public List<ConnectionDTO> getUserConnections(Long userId) {
         return connectionRepository.findByUserId(userId).stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Incrementar contador de archivos enviados
-     */
+    
     public void incrementFilesSent(Long connectionId) {
         UserConnection connection = connectionRepository.findById(connectionId)
                 .orElseThrow(() -> new RuntimeException("Connection not found"));

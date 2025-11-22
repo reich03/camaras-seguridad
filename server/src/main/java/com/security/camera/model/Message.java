@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
-/**
- * Entidad Message para rastrear mensajes enviados/recibidos
- */
+
 @Entity
 @Table(name = "messages")
 @Getter
