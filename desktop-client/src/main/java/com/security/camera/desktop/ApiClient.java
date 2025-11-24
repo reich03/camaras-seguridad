@@ -27,6 +27,30 @@ public class ApiClient {
     }
 
     // User endpoints
+    public UserDTO login(String username, String password) throws IOException {
+        String jsonBody = String.format(
+            "{\"username\":\"%s\",\"password\":\"%s\"}",
+            username, password
+        );
+
+        RequestBody body = RequestBody.create(jsonBody, MediaType.get("application/json; charset=utf-8"));
+        Request request = new Request.Builder()
+                .url(serverUrl + "/api/users/login")
+                .post(body)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.code() == 401) {
+                return null; // Credenciales inválidas
+            }
+            if (!response.isSuccessful()) {
+                throw new IOException("Error: " + response.code());
+            }
+            String json = response.body().string();
+            return gson.fromJson(json, UserDTO.class);
+        }
+    }
+
     public List<UserDTO> getAllUsers() throws IOException {
         Request request = new Request.Builder()
                 .url(serverUrl + "/api/users")
@@ -150,10 +174,14 @@ public class ApiClient {
         private Long id;
         private String username;
         private String email;
+        private Boolean isActive;
+        private Integer maxConnections;
 
         public Long getId() { return id; }
         public String getUsername() { return username; }
         public String getEmail() { return email; }
+        public Boolean getIsActive() { return isActive; }
+        public Integer getMaxConnections() { return maxConnections; }
     }
 
     public static class CameraDTO {

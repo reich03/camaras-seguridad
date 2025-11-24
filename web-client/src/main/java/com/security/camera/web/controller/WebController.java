@@ -152,4 +152,9 @@ public class WebController {
         }
         return "connections";
     }
+
+    @GetMapping("/streaming")
+    public String streaming() {
+        return "streaming";
+    }
 }

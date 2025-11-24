@@ -65,6 +65,13 @@
             <artifactId>javacv-platform</artifactId>
             <version>1.5.9</version>
         </dependency>
+
+        <!-- WebSocket Client para streaming -->
+        <dependency>
+            <groupId>org.java-websocket</groupId>
+            <artifactId>Java-WebSocket</artifactId>
+            <version>1.5.3</version>
+        </dependency>
     </dependencies>
 
     <build>

@@ -31,8 +31,11 @@ public class CameraClientApplication extends Application {
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
     private final WebcamCaptureService webcamService = new WebcamCaptureService();
     
+    // Usuario logueado
+    private ApiClient.UserDTO loggedUser;
+    
     // Controles comunes
-    private ComboBox<UserItem> userComboBox;
+    private Label userInfoLabel;
     private ComboBox<CameraItem> cameraComboBox;
     private TextField cameraNameField;
     private TextField ipAddressField;
@@ -65,7 +68,13 @@ public class CameraClientApplication extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("🎥 Security Camera Client - Enhanced");
+        // Mostrar ventana de login primero
+        if (!showLoginDialog()) {
+            Platform.exit();
+            return;
+        }
+
+        primaryStage.setTitle("🎥 Security Camera Client - " + loggedUser.getUsername());
 
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(15));
@@ -83,12 +92,130 @@ public class CameraClientApplication extends Application {
         VBox bottomPanel = createBottomPanel();
         root.setBottom(bottomPanel);
 
-        Scene scene = new Scene(root, 900, 750);
+        Scene scene = new Scene(root, 950, 800);
         primaryStage.setScene(scene);
+        primaryStage.setMinWidth(800);
+        primaryStage.setMinHeight(650);
         primaryStage.setOnCloseRequest(e -> shutdown());
         primaryStage.show();
 
-        loadUsers();
+        loadCamerasForUser();
+    }
+
+    private boolean showLoginDialog() {
+        Stage loginStage = new Stage();
+        loginStage.setTitle("🔐 Security Camera - Login");
+        loginStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        loginStage.setResizable(false);
+
+        VBox loginBox = new VBox(20);
+        loginBox.setPadding(new Insets(30));
+        loginBox.setAlignment(Pos.CENTER);
+        loginBox.setStyle("-fx-background-color: linear-gradient(to bottom, #667eea, #764ba2);");
+
+        // Logo/Título
+        Label titleLabel = new Label("🎥 Security Camera System");
+        titleLabel.setStyle("-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: white;");
+
+        Label subtitleLabel = new Label("Desktop Client");
+        subtitleLabel.setStyle("-fx-font-size: 14px; -fx-text-fill: #e0e0e0;");
+
+        // Panel blanco para el formulario
+        VBox formBox = new VBox(15);
+        formBox.setPadding(new Insets(30));
+        formBox.setStyle("-fx-background-color: white; -fx-background-radius: 10;");
+        formBox.setMaxWidth(350);
+
+        Label loginLabel = new Label("Iniciar Sesión");
+        loginLabel.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
+
+        // Usuario
+        Label userLabel = new Label("👤 Usuario:");
+        userLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
+        TextField usernameField = new TextField();
+        usernameField.setPromptText("Ingresa tu usuario");
+        usernameField.setStyle("-fx-pref-height: 35px; -fx-font-size: 13px;");
+
+        // Contraseña
+        Label passLabel = new Label("🔒 Contraseña:");
+        passLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #34495e;");
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Ingresa tu contraseña");
+        passwordField.setStyle("-fx-pref-height: 35px; -fx-font-size: 13px;");
+
+        // Mensaje de error
+        Label errorLabel = new Label("");
+        errorLabel.setStyle("-fx-text-fill: #e74c3c; -fx-font-weight: bold;");
+        errorLabel.setVisible(false);
+
+        // Botones
+        HBox buttonBox = new HBox(10);
+        buttonBox.setAlignment(Pos.CENTER);
+
+        Button loginButton = new Button("🔓 Iniciar Sesión");
+        loginButton.setPrefWidth(150);
+        loginButton.setStyle(
+            "-fx-background-color: #27ae60; " +
+            "-fx-text-fill: white; " +
+            "-fx-font-weight: bold; " +
+            "-fx-font-size: 14px; " +
+            "-fx-padding: 10 20;"
+        );
+
+        Button cancelButton = new Button("✖ Cancelar");
+        cancelButton.setPrefWidth(100);
+        cancelButton.setStyle(
+            "-fx-background-color: #95a5a6; " +
+            "-fx-text-fill: white; " +
+            "-fx-font-weight: bold; " +
+            "-fx-font-size: 14px; " +
+            "-fx-padding: 10 20;"
+        );
+
+        final boolean[] loginSuccess = {false};
+
+        loginButton.setOnAction(e -> {
+            String username = usernameField.getText().trim();
+            String password = passwordField.getText().trim();
+
+            if (username.isEmpty() || password.isEmpty()) {
+                errorLabel.setText("❌ Por favor completa todos los campos");
+                errorLabel.setVisible(true);
+                return;
+            }
+
+            try {
+                ApiClient.UserDTO user = apiClient.login(username, password);
+                if (user != null) {
+                    loggedUser = user;
+                    loginSuccess[0] = true;
+                    loginStage.close();
+                } else {
+                    errorLabel.setText("❌ Usuario o contraseña incorrectos");
+                    errorLabel.setVisible(true);
+                    passwordField.clear();
+                }
+            } catch (Exception ex) {
+                errorLabel.setText("❌ Error conectando al servidor");
+                errorLabel.setVisible(true);
+                ex.printStackTrace();
+            }
+        });
+
+        cancelButton.setOnAction(e -> loginStage.close());
+
+        // Enter para login
+        passwordField.setOnAction(e -> loginButton.fire());
+
+        buttonBox.getChildren().addAll(loginButton, cancelButton);
+        formBox.getChildren().addAll(loginLabel, userLabel, usernameField, passLabel, passwordField, errorLabel, buttonBox);
+        loginBox.getChildren().addAll(titleLabel, subtitleLabel, formBox);
+
+        Scene loginScene = new Scene(loginBox, 450, 500);
+        loginStage.setScene(loginScene);
+        loginStage.showAndWait();
+
+        return loginSuccess[0];
     }
 
     private VBox createConfigPanel() {
@@ -99,31 +226,48 @@ public class CameraClientApplication extends Application {
         Label titleLabel = new Label("📹 Camera Configuration");
         titleLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;");
 
-        // Selección de usuario
+        // Info del usuario logueado
+        HBox userInfoBox = new HBox(15);
+        userInfoBox.setPadding(new Insets(10));
+        userInfoBox.setStyle("-fx-background-color: #ecf0f1; -fx-background-radius: 5;");
+        userInfoBox.setAlignment(Pos.CENTER_LEFT);
+        
+        Label userIconLabel = new Label("👤");
+        userIconLabel.setStyle("-fx-font-size: 24px;");
+        
+        VBox userDetailsBox = new VBox(3);
+        Label userNameLabel = new Label("Usuario: " + loggedUser.getUsername());
+        userNameLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #2c3e50;");
+        Label userEmailLabel = new Label("Email: " + loggedUser.getEmail());
+        userEmailLabel.setStyle("-fx-font-size: 12px; -fx-text-fill: #7f8c8d;");
+        userDetailsBox.getChildren().addAll(userNameLabel, userEmailLabel);
+        
+        Button logoutButton = new Button("🚪 Cerrar Sesión");
+        logoutButton.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 5 15;");
+        logoutButton.setOnAction(e -> logout());
+        
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+        
+        userInfoBox.getChildren().addAll(userIconLabel, userDetailsBox, spacer, logoutButton);
+
+        // Selección de cámara
         GridPane gridPane = new GridPane();
         gridPane.setHgap(10);
         gridPane.setVgap(10);
         
-        Label userLabel = new Label("👤 User:");
-        userLabel.setStyle("-fx-font-weight: bold;");
-        userComboBox = new ComboBox<>();
-        userComboBox.setPrefWidth(220);
-        userComboBox.setPromptText("Select user...");
-        userComboBox.setOnAction(e -> loadCamerasForUser());
-        Button refreshUsersBtn = new Button("🔄 Refresh");
-        refreshUsersBtn.setOnAction(e -> loadUsers());
-        
         Label cameraLabel = new Label("📷 Camera:");
         cameraLabel.setStyle("-fx-font-weight: bold;");
         cameraComboBox = new ComboBox<>();
-        cameraComboBox.setPrefWidth(220);
+        cameraComboBox.setPrefWidth(300);
         cameraComboBox.setPromptText("Select camera...");
         
-        gridPane.add(userLabel, 0, 0);
-        gridPane.add(userComboBox, 1, 0);
-        gridPane.add(refreshUsersBtn, 2, 0);
-        gridPane.add(cameraLabel, 0, 1);
-        gridPane.add(cameraComboBox, 1, 1);
+        Button refreshCamerasBtn = new Button("🔄 Refresh");
+        refreshCamerasBtn.setOnAction(e -> loadCamerasForUser());
+        
+        gridPane.add(cameraLabel, 0, 0);
+        gridPane.add(cameraComboBox, 1, 0);
+        gridPane.add(refreshCamerasBtn, 2, 0);
 
         // Registrar nueva cámara
         TitledPane registerPane = new TitledPane();
@@ -163,13 +307,19 @@ public class CameraClientApplication extends Application {
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.UNAVAILABLE);
 
-        // Tab 1: Webcam Capture
+        // Tab 1: Webcam Capture - CON SCROLL
         Tab webcamTab = new Tab("📹 Webcam Capture");
-        webcamTab.setContent(createWebcamPanel());
+        ScrollPane webcamScrollPane = new ScrollPane(createWebcamPanel());
+        webcamScrollPane.setFitToWidth(true);
+        webcamScrollPane.setStyle("-fx-background-color: white;");
+        webcamTab.setContent(webcamScrollPane);
 
-        // Tab 2: File Upload
+        // Tab 2: File Upload - CON SCROLL
         Tab fileTab = new Tab("📁 File Upload");
-        fileTab.setContent(createFilePanel());
+        ScrollPane fileScrollPane = new ScrollPane(createFilePanel());
+        fileScrollPane.setFitToWidth(true);
+        fileScrollPane.setStyle("-fx-background-color: white;");
+        fileTab.setContent(fileScrollPane);
 
         tabPane.getTabs().addAll(webcamTab, fileTab);
         return tabPane;
@@ -366,12 +516,11 @@ public class CameraClientApplication extends Application {
      * Inicia todo el sistema de vigilancia: cámara + auto-grabación
      */
     private void startFullSurveillance() {
-        // Verificar selecciones
+        // Verificar selección de cámara y usuario logueado
         CameraItem selectedCamera = cameraComboBox.getValue();
-        UserItem selectedUser = userComboBox.getValue();
         
-        if (selectedUser == null || selectedCamera == null) {
-            showError("Configuración Requerida", "Por favor selecciona un usuario y una cámara antes de iniciar");
+        if (loggedUser == null || selectedCamera == null) {
+            showError("Configuración Requerida", "Por favor selecciona una cámara antes de iniciar");
             return;
         }
 
@@ -383,7 +532,7 @@ public class CameraClientApplication extends Application {
             String ipAddress = ipAddressField.getText().trim();
             if (ipAddress.isEmpty()) ipAddress = "127.0.0.1";
             
-            var connection = apiClient.connect(selectedUser.getId(), ipAddress);
+            var connection = apiClient.connect(loggedUser.getId(), ipAddress);
             currentConnectionId = connection.getId();
             
             // 3. Activar auto-grabación
@@ -401,7 +550,7 @@ public class CameraClientApplication extends Application {
             
             log("✓ Sistema de vigilancia iniciado correctamente");
             log("✓ Cámara: " + selectedCamera.getName());
-            log("✓ Usuario: " + selectedUser.getUsername());
+            log("✓ Usuario: " + loggedUser.getUsername());
             
             // 5. Grabar primer video inmediatamente
             recordAndUploadVideo(selectedCamera.getId());
@@ -577,10 +726,9 @@ public class CameraClientApplication extends Application {
         }
 
         CameraItem selectedCamera = cameraComboBox.getValue();
-        UserItem selectedUser = userComboBox.getValue();
         
-        if (selectedUser == null || selectedCamera == null) {
-            showError("Selection Required", "Please select a user and camera");
+        if (loggedUser == null || selectedCamera == null) {
+            showError("Selection Required", "Please select a camera");
             return;
         }
 
@@ -589,7 +737,7 @@ public class CameraClientApplication extends Application {
             String ipAddress = ipAddressField.getText().trim();
             if (ipAddress.isEmpty()) ipAddress = "127.0.0.1";
             
-            var connection = apiClient.connect(selectedUser.getId(), ipAddress);
+            var connection = apiClient.connect(loggedUser.getId(), ipAddress);
             currentConnectionId = connection.getId();
             
             isAutoSending = true;
@@ -657,48 +805,34 @@ public class CameraClientApplication extends Application {
 
     // ==================== COMMON METHODS ====================
 
-    private void loadUsers() {
-        try {
-            var users = apiClient.getAllUsers();
-            userComboBox.getItems().clear();
-            for (var user : users) {
-                userComboBox.getItems().add(new UserItem(user.getId(), user.getUsername()));
-            }
-            log("✓ Loaded " + users.size() + " users");
-        } catch (Exception e) {
-            log("✗ Error loading users: " + e.getMessage());
-            showError("Failed to load users", e.getMessage());
-        }
-    }
-
     private void loadCamerasForUser() {
-        UserItem selectedUser = userComboBox.getValue();
-        if (selectedUser == null) return;
+        if (loggedUser == null) return;
 
         try {
-            var cameras = apiClient.getCamerasByUserId(selectedUser.getId());
+            var cameras = apiClient.getCamerasByUserId(loggedUser.getId());
             cameraComboBox.getItems().clear();
             for (var camera : cameras) {
                 cameraComboBox.getItems().add(new CameraItem(camera.getId(), camera.getCameraName()));
             }
-            log("✓ Loaded " + cameras.size() + " cameras for " + selectedUser.getUsername());
+            log("✓ Loaded " + cameras.size() + " cameras for " + loggedUser.getUsername());
         } catch (Exception e) {
             log("✗ Error loading cameras: " + e.getMessage());
         }
     }
 
     private void registerCamera() {
-        UserItem selectedUser = userComboBox.getValue();
+        if (loggedUser == null) return;
+        
         String cameraName = cameraNameField.getText().trim();
         String ipAddress = ipAddressField.getText().trim();
 
-        if (selectedUser == null || cameraName.isEmpty()) {
-            showError("Validation Error", "Please select a user and enter camera name");
+        if (cameraName.isEmpty()) {
+            showError("Validation Error", "Please enter camera name");
             return;
         }
 
         try {
-            var camera = apiClient.registerCamera(cameraName, selectedUser.getId(), ipAddress);
+            var camera = apiClient.registerCamera(cameraName, loggedUser.getId(), ipAddress);
             log("✓ Camera registered: " + camera.getCameraName());
             cameraNameField.clear();
             ipAddressField.clear();
@@ -708,6 +842,21 @@ public class CameraClientApplication extends Application {
             log("✗ Error registering camera: " + e.getMessage());
             showError("Registration Failed", e.getMessage());
         }
+    }
+    
+    private void logout() {
+        Platform.runLater(() -> {
+            if (isAutoRecording) {
+                stopFullSurveillance();
+            }
+            if (isAutoSending) {
+                stopAutoSending();
+            }
+            loggedUser = null;
+            Stage stage = (Stage) cameraComboBox.getScene().getWindow();
+            stage.close();
+            Platform.exit();
+        });
     }
 
     private void log(String message) {
@@ -746,22 +895,6 @@ public class CameraClientApplication extends Application {
     }
 
     // ==================== INNER CLASSES ====================
-
-    static class UserItem {
-        private final Long id;
-        private final String username;
-
-        public UserItem(Long id, String username) {
-            this.id = id;
-            this.username = username;
-        }
-
-        public Long getId() { return id; }
-        public String getUsername() { return username; }
-
-        @Override
-        public String toString() { return username; }
-    }
 
     static class CameraItem {
         private final Long id;

@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Streaming - Security Camera System</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar-custom {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+        }
+        
+        .container-main {
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .camera-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            transition: transform 0.3s ease;
+        }
+        
+        .camera-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .camera-preview {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            background: #f0f0f0;
+            min-height: 300px;
+            object-fit: contain;
+        }
+        
+        .status-badge {
+            position: absolute;
+            top: 30px;
+            right: 30px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        .status-live {
+            background: #27ae60;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-offline {
+            background: #95a5a6;
+            color: white;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .camera-info {
+            margin-top: 15px;
+        }
+        
+        .no-cameras {
+            text-align: center;
+            color: white;
+            padding: 100px 20px;
+        }
+        
+        .no-cameras i {
+            font-size: 80px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold text-primary" href="/">
+                <i class="fas fa-video"></i> Security Camera System
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="/"><i class="fas fa-home"></i> Home</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/users"><i class="fas fa-users"></i> Users</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/cameras"><i class="fas fa-camera"></i> Cameras</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/streaming"><i class="fas fa-broadcast-tower"></i> Live Streaming</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/videos"><i class="fas fa-film"></i> Videos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/connections"><i class="fas fa-plug"></i> Connections</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container container-main">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="text-white mb-0">
+                        <i class="fas fa-broadcast-tower"></i> Live Streaming
+                    </h2>
+                    <button class="btn btn-light" onclick="refreshCameras()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="camerasContainer" class="row">
+            <!-- Las cámaras se cargarán dinámicamente aquí -->
+        </div>
+
+        <div id="noCamerasMessage" class="no-cameras" style="display: none;">
+            <i class="fas fa-video-slash"></i>
+            <h3>No hay cámaras transmitiendo</h3>
+            <p>Las cámaras en vivo aparecerán aquí cuando comiencen a transmitir</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let stompClient = null;
+        let activeCameras = new Map();
+
+        // Conectar a WebSocket al cargar la página
+        window.onload = function() {
+            connectWebSocket();
+            loadActiveCameras();
+        };
+
+        function connectWebSocket() {
+            const socket = new SockJS('http://localhost:8082/ws');
+            stompClient = Stomp.over(socket);
+            
+            stompClient.connect({}, function(frame) {
+                console.log('Connected to WebSocket');
+                
+                // Suscribirse al topic de frames
+                stompClient.subscribe('/topic/frames', function(message) {
+                    const frameData = JSON.parse(message.body);
+                    updateCameraFrame(frameData);
+                });
+            }, function(error) {
+                console.error('WebSocket error:', error);
+                setTimeout(connectWebSocket, 5000); // Reconectar después de 5 segundos
+            });
+        }
+
+        function updateCameraFrame(frameData) {
+            const cameraId = frameData.cameraId;
+            const cameraName = frameData.cameraName;
+            const imageData = frameData.imageData;
+            
+            // Si la cámara no existe, crearla
+            if (!activeCameras.has(cameraId)) {
+                addCameraCard(cameraId, cameraName);
+                activeCameras.set(cameraId, true);
+                document.getElementById('noCamerasMessage').style.display = 'none';
+            }
+            
+            // Actualizar la imagen
+            const imgElement = document.getElementById(`camera-${cameraId}`);
+            if (imgElement) {
+                imgElement.src = 'data:image/jpeg;base64,' + imageData;
+            }
+            
+            // Actualizar timestamp
+            const timeElement = document.getElementById(`time-${cameraId}`);
+            if (timeElement) {
+                timeElement.textContent = new Date().toLocaleTimeString();
+            }
+        }
+
+        function addCameraCard(cameraId, cameraName) {
+            const container = document.getElementById('camerasContainer');
+            
+            const col = document.createElement('div');
+            col.className = 'col-md-6 col-lg-4';
+            col.id = `card-container-${cameraId}`;
+            
+            col.innerHTML = `
+                <div class="camera-card position-relative">
+                    <span class="status-badge status-live">
+                        <i class="fas fa-circle"></i> LIVE
+                    </span>
+                    <img id="camera-${cameraId}" class="camera-preview" src="" alt="${cameraName}">
+                    <div class="camera-info">
+                        <h5 class="mb-2"><i class="fas fa-camera"></i> ${cameraName}</h5>
+                        <p class="mb-1"><small><i class="fas fa-clock"></i> Last update: <span id="time-${cameraId}">--:--:--</span></small></p>
+                        <p class="mb-0"><small><i class="fas fa-hashtag"></i> Camera ID: ${cameraId}</small></p>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(col);
+        }
+
+        function loadActiveCameras() {
+            fetch('http://localhost:8082/api/stream/active')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.activeCameras && data.activeCameras.length > 0) {
+                        data.activeCameras.forEach(cameraId => {
+                            loadCameraLatestFrame(cameraId);
+                        });
+                        document.getElementById('noCamerasMessage').style.display = 'none';
+                    } else {
+                        document.getElementById('noCamerasMessage').style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading active cameras:', error);
+                    document.getElementById('noCamerasMessage').style.display = 'block';
+                });
+        }
+
+        function loadCameraLatestFrame(cameraId) {
+            fetch(`http://localhost:8082/api/stream/latest/${cameraId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.available) {
+                        const frameData = {
+                            cameraId: cameraId,
+                            cameraName: `Camera ${cameraId}`,
+                            imageData: data.imageData
+                        };
+                        updateCameraFrame(frameData);
+                    }
+                })
+                .catch(error => console.error('Error loading latest frame:', error));
+        }
+
+        function refreshCameras() {
+            activeCameras.clear();
+            document.getElementById('camerasContainer').innerHTML = '';
+            loadActiveCameras();
+        }
+    </script>
+</body>
+</html>

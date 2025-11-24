@@ -47,6 +47,32 @@ public class UserService {
                 .collect(Collectors.toList());
     }
 
+    public LoginResponse login(String username, String password) {
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+        
+        if (user == null) {
+            return null; // Usuario no encontrado
+        }
+        
+        // Verificar contraseña
+        if (!user.getPassword().equals(password)) {
+            return null; // Contraseña incorrecta
+        }
+        
+        if (!user.getIsActive()) {
+            return null; // Usuario inactivo
+        }
+        
+        return LoginResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .isActive(user.getIsActive())
+                .maxConnections(user.getMaxConnections())
+                .build();
+    }
+
     public UserDTO getUserById(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
